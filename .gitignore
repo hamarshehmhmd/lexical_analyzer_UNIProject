@@ -1,33 +1,13 @@
 # Compiled binaries
 front_extended
-*.exe
-*.out
-*.app
-
-# Object files
+parser
 *.o
-*.obj
+*.exe
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (Linux/Unix)
-*.so
-*.so.*
-*.dylib
-
-# Debug files
+# Debug information
 *.dSYM/
-*.su
-*.idb
-*.pdb
-
-# Core dumps
-core
-core.*
+*.gch
+*.pch
 
 # IDE files
 .vscode/
@@ -38,42 +18,11 @@ core.*
 
 # OS files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-
-# LaTeX build files
-*.aux
-*.bbl
-*.blg
-*.fdb_latexmk
-*.fls
-*.log
-*.pdf
-*.synctex.gz
-*.toc
-*.out
-*.nav
-*.snm
-*.vrb
 
 # Backup files
 *.bak
-*.backup
-*~
+*.orig
 
-# Test output files
-test_output.txt
-output.log
-
-# Documentation
-docs/
-html/
-latex/
-
-# Temporary files
-tmp/
-temp/ 
+# Test output
+*.out 

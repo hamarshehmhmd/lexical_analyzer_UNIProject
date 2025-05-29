@@ -1,0 +1,874 @@
+/* parser.c - Extended Recursive Descent Parser
+   Based on Section 4.4.1, extended to support:
+   - for statements
+   - if and if-else statements  
+   - while statements
+   - do-while statements
+   Uses the extended lexical analyzer from HW#2
+*/
+
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+#include <stdlib.h>
+
+/* Global declarations from lexical analyzer */
+int charClass;
+char lexeme[100];
+char nextChar;
+int lexLen;
+int token;
+int nextToken;
+FILE *in_fp;
+
+/* Function declarations for lexical analyzer */
+void addChar();
+void getChar();
+void getNonBlank();
+int lex();
+int lookup(char ch);
+int lookupReservedWord();
+void skipBlockComment();
+void skipLineComment();
+
+/* Function declarations for parser */
+void expr();
+void term();
+void factor();
+void statement();
+void ifStatement();
+void whileStatement();
+void forStatement();
+void doWhileStatement();
+void compoundStatement();
+void assignment();
+void error();
+
+/* Character classes */
+#define LETTER 0
+#define DIGIT 1
+#define UNKNOWN 99
+
+/* Token codes - from lexical analyzer */
+#define INT_LIT 10
+#define IDENT 11
+#define FLOAT_LIT 12
+#define ASSIGN_OP 20
+#define ADD_OP 21
+#define SUB_OP 22
+#define MULT_OP 23
+#define DIV_OP 24
+#define LEFT_PAREN 25
+#define RIGHT_PAREN 26
+
+/* Reserved word codes */
+#define FOR_CODE 30
+#define IF_CODE 31
+#define ELSE_CODE 32
+#define WHILE_CODE 33
+#define DO_CODE 34
+#define INT_CODE 35
+#define FLOAT_CODE 36
+
+/* Additional token codes for parser */
+#define LEFT_BRACE 40
+#define RIGHT_BRACE 41
+#define SEMICOLON 42
+#define LT_OP 43      /* < */
+#define GT_OP 44      /* > */
+#define LE_OP 45      /* <= */
+#define GE_OP 46      /* >= */
+#define EQ_OP 47      /* == */
+#define NE_OP 48      /* != */
+
+/* Reserved words table */
+struct {
+    char *word;
+    int code;
+} reservedWords[] = {
+    {"for", FOR_CODE},
+    {"if", IF_CODE},
+    {"else", ELSE_CODE},
+    {"while", WHILE_CODE},
+    {"do", DO_CODE},
+    {"int", INT_CODE},
+    {"float", FLOAT_CODE},
+    {NULL, 0}
+};
+
+/******************************************************/
+/* main driver */
+int main() {
+    printf("Extended Recursive Descent Parser\n");
+    printf("Based on Section 4.4.1 with control flow statements\n\n");
+    
+    /* Open the input data file and process its contents */
+    if ((in_fp = fopen("parser_input.txt", "r")) == NULL) {
+        printf("ERROR - cannot open parser_input.txt\n");
+        printf("Please create parser_input.txt with your test program\n");
+        return 1;
+    }
+    
+    getChar();
+    lex(); /* Get the first token */
+    
+    printf("Starting parse...\n\n");
+    
+    /* Parse statements until EOF */
+    while (nextToken != EOF) {
+        statement();
+    }
+    
+    printf("\nParsing completed successfully!\n");
+    fclose(in_fp);
+    return 0;
+}
+
+/*****************************************************/
+/* error - handle syntax errors */
+void error() {
+    printf("SYNTAX ERROR: Unexpected token %d (%s)\n", nextToken, lexeme);
+    printf("Parsing terminated.\n");
+    exit(1);
+}
+
+/*****************************************************/
+/* statement - parse various statement types */
+void statement() {
+    printf("Enter <statement>\n");
+    
+    switch (nextToken) {
+        case IF_CODE:
+            ifStatement();
+            break;
+        case WHILE_CODE:
+            whileStatement();
+            break;
+        case FOR_CODE:
+            forStatement();
+            break;
+        case DO_CODE:
+            doWhileStatement();
+            break;
+        case LEFT_BRACE:
+            compoundStatement();
+            break;
+        case IDENT:
+            assignment();
+            break;
+        case INT_CODE:
+        case FLOAT_CODE:
+            /* Variable declaration */
+            lex(); /* Skip type */
+            if (nextToken == IDENT) {
+                printf("Variable declaration: %s\n", lexeme);
+                lex();
+                if (nextToken == SEMICOLON) {
+                    lex();
+                } else {
+                    error();
+                }
+            } else {
+                error();
+            }
+            break;
+        default:
+            /* Try to parse as expression statement */
+            expr();
+            if (nextToken == SEMICOLON) {
+                lex();
+            } else {
+                error();
+            }
+            break;
+    }
+    
+    printf("Exit <statement>\n");
+}
+
+/*****************************************************/
+/* ifStatement - parse if and if-else statements */
+void ifStatement() {
+    printf("Enter <ifStatement>\n");
+    
+    /* Expect 'if' */
+    if (nextToken != IF_CODE) {
+        error();
+    }
+    lex(); /* Skip 'if' */
+    
+    /* Expect '(' */
+    if (nextToken != LEFT_PAREN) {
+        error();
+    }
+    lex(); /* Skip '(' */
+    
+    /* Parse boolean expression */
+    printf("Parsing condition...\n");
+    expr();
+    
+    /* Expect ')' */
+    if (nextToken != RIGHT_PAREN) {
+        error();
+    }
+    lex(); /* Skip ')' */
+    
+    /* Parse then statement */
+    printf("Parsing then clause...\n");
+    statement();
+    
+    /* Check for optional else clause */
+    if (nextToken == ELSE_CODE) {
+        printf("Parsing else clause...\n");
+        lex(); /* Skip 'else' */
+        statement();
+    }
+    
+    printf("Exit <ifStatement>\n");
+}
+
+/*****************************************************/
+/* whileStatement - parse while statements */
+void whileStatement() {
+    printf("Enter <whileStatement>\n");
+    
+    /* Expect 'while' */
+    if (nextToken != WHILE_CODE) {
+        error();
+    }
+    lex(); /* Skip 'while' */
+    
+    /* Expect '(' */
+    if (nextToken != LEFT_PAREN) {
+        error();
+    }
+    lex(); /* Skip '(' */
+    
+    /* Parse condition */
+    printf("Parsing while condition...\n");
+    expr();
+    
+    /* Expect ')' */
+    if (nextToken != RIGHT_PAREN) {
+        error();
+    }
+    lex(); /* Skip ')' */
+    
+    /* Parse loop body */
+    printf("Parsing while body...\n");
+    statement();
+    
+    printf("Exit <whileStatement>\n");
+}
+
+/*****************************************************/
+/* forStatement - parse for statements */
+void forStatement() {
+    printf("Enter <forStatement>\n");
+    
+    /* Expect 'for' */
+    if (nextToken != FOR_CODE) {
+        error();
+    }
+    lex(); /* Skip 'for' */
+    
+    /* Expect '(' */
+    if (nextToken != LEFT_PAREN) {
+        error();
+    }
+    lex(); /* Skip '(' */
+    
+    /* Parse initialization (optional) */
+    printf("Parsing for initialization...\n");
+    if (nextToken != SEMICOLON) {
+        if (nextToken == INT_CODE || nextToken == FLOAT_CODE) {
+            /* Variable declaration */
+            lex(); /* Skip type */
+            if (nextToken == IDENT) {
+                lex();
+                if (nextToken == ASSIGN_OP) {
+                    lex();
+                    expr();
+                }
+            }
+        } else if (nextToken == IDENT) {
+            /* Assignment statement */
+            lex(); /* Skip identifier */
+            if (nextToken == ASSIGN_OP) {
+                lex();
+                expr();
+            } else {
+                error();
+            }
+        } else {
+            expr();
+        }
+    }
+    
+    /* Expect ';' */
+    if (nextToken != SEMICOLON) {
+        error();
+    }
+    lex(); /* Skip ';' */
+    
+    /* Parse condition (optional) */
+    printf("Parsing for condition...\n");
+    if (nextToken != SEMICOLON) {
+        expr();
+    }
+    
+    /* Expect ';' */
+    if (nextToken != SEMICOLON) {
+        error();
+    }
+    lex(); /* Skip ';' */
+    
+    /* Parse increment (optional) */
+    printf("Parsing for increment...\n");
+    if (nextToken != RIGHT_PAREN) {
+        if (nextToken == IDENT) {
+            /* Assignment statement */
+            lex(); /* Skip identifier */
+            if (nextToken == ASSIGN_OP) {
+                lex();
+                expr();
+            } else {
+                error();
+            }
+        } else {
+            expr();
+        }
+    }
+    
+    /* Expect ')' */
+    if (nextToken != RIGHT_PAREN) {
+        error();
+    }
+    lex(); /* Skip ')' */
+    
+    /* Parse loop body */
+    printf("Parsing for body...\n");
+    statement();
+    
+    printf("Exit <forStatement>\n");
+}
+
+/*****************************************************/
+/* doWhileStatement - parse do-while statements */
+void doWhileStatement() {
+    printf("Enter <doWhileStatement>\n");
+    
+    /* Expect 'do' */
+    if (nextToken != DO_CODE) {
+        error();
+    }
+    lex(); /* Skip 'do' */
+    
+    /* Parse loop body */
+    printf("Parsing do body...\n");
+    statement();
+    
+    /* Expect 'while' */
+    if (nextToken != WHILE_CODE) {
+        error();
+    }
+    lex(); /* Skip 'while' */
+    
+    /* Expect '(' */
+    if (nextToken != LEFT_PAREN) {
+        error();
+    }
+    lex(); /* Skip '(' */
+    
+    /* Parse condition */
+    printf("Parsing do-while condition...\n");
+    expr();
+    
+    /* Expect ')' */
+    if (nextToken != RIGHT_PAREN) {
+        error();
+    }
+    lex(); /* Skip ')' */
+    
+    /* Expect ';' */
+    if (nextToken != SEMICOLON) {
+        error();
+    }
+    lex(); /* Skip ';' */
+    
+    printf("Exit <doWhileStatement>\n");
+}
+
+/*****************************************************/
+/* compoundStatement - parse compound statements { } */
+void compoundStatement() {
+    printf("Enter <compoundStatement>\n");
+    
+    /* Expect '{' */
+    if (nextToken != LEFT_BRACE) {
+        error();
+    }
+    lex(); /* Skip '{' */
+    
+    /* Parse statements until '}' */
+    while (nextToken != RIGHT_BRACE && nextToken != EOF) {
+        statement();
+    }
+    
+    /* Expect '}' */
+    if (nextToken != RIGHT_BRACE) {
+        error();
+    }
+    lex(); /* Skip '}' */
+    
+    printf("Exit <compoundStatement>\n");
+}
+
+/*****************************************************/
+/* assignment - parse assignment statements */
+void assignment() {
+    printf("Enter <assignment>\n");
+    
+    /* Expect identifier */
+    if (nextToken != IDENT) {
+        error();
+    }
+    printf("Assignment to variable: %s\n", lexeme);
+    lex(); /* Skip identifier */
+    
+    /* Expect '=' */
+    if (nextToken != ASSIGN_OP) {
+        error();
+    }
+    lex(); /* Skip '=' */
+    
+    /* Parse expression */
+    expr();
+    
+    /* Expect ';' */
+    if (nextToken != SEMICOLON) {
+        error();
+    }
+    lex(); /* Skip ';' */
+    
+    printf("Exit <assignment>\n");
+}
+
+/*****************************************************/
+/* expr - from Section 4.4.1, extended for comparisons */
+void expr() {
+    printf("Enter <expr>\n");
+    
+    /* Parse the first term */
+    term();
+    
+    /* Handle arithmetic and comparison operators */
+    while (nextToken == ADD_OP || nextToken == SUB_OP ||
+           nextToken == LT_OP || nextToken == GT_OP ||
+           nextToken == LE_OP || nextToken == GE_OP ||
+           nextToken == EQ_OP || nextToken == NE_OP) {
+        printf("Found operator: %s\n", lexeme);
+        lex();
+        term();
+    }
+    
+    printf("Exit <expr>\n");
+}
+
+/*****************************************************/
+/* term - from Section 4.4.1 */
+void term() {
+    printf("Enter <term>\n");
+    
+    /* Parse the first factor */
+    factor();
+    
+    /* As long as the next token is * or /, get
+       the next token and parse the next factor */
+    while (nextToken == MULT_OP || nextToken == DIV_OP) {
+        lex();
+        factor();
+    }
+    
+    printf("Exit <term>\n");
+}
+
+/*****************************************************/
+/* factor - from Section 4.4.1 */
+void factor() {
+    printf("Enter <factor>\n");
+    
+    /* Determine which RHS */
+    if (nextToken == IDENT || nextToken == INT_LIT || nextToken == FLOAT_LIT) {
+        printf("Found: %s\n", lexeme);
+        /* Get the next token */
+        lex();
+    }
+    /* If the RHS is ( <expr> ), call lex to pass over the
+       left parenthesis, call expr, and check for the right
+       parenthesis */
+    else if (nextToken == LEFT_PAREN) {
+        lex();
+        expr();
+        if (nextToken == RIGHT_PAREN)
+            lex();
+        else
+            error();
+    }
+    /* It was not an id, a literal, or a left parenthesis */
+    else {
+        error();
+    }
+    
+    printf("Exit <factor>\n");
+}
+
+/* Include all lexical analyzer functions from front_extended.c */
+
+/*****************************************************/
+/* lookup - extended to handle additional operators */
+int lookup(char ch) {
+    switch (ch) {
+        case '(':
+            addChar();
+            nextToken = LEFT_PAREN;
+            break;
+        case ')':
+            addChar();
+            nextToken = RIGHT_PAREN;
+            break;
+        case '{':
+            addChar();
+            nextToken = LEFT_BRACE;
+            break;
+        case '}':
+            addChar();
+            nextToken = RIGHT_BRACE;
+            break;
+        case ';':
+            addChar();
+            nextToken = SEMICOLON;
+            break;
+        case '+':
+            addChar();
+            nextToken = ADD_OP;
+            break;
+        case '-':
+            addChar();
+            nextToken = SUB_OP;
+            break;
+        case '*':
+            addChar();
+            nextToken = MULT_OP;
+            break;
+        case '=':
+            {
+                char next = getc(in_fp);
+                if (next == '=') {
+                    addChar();
+                    addChar();
+                    nextToken = EQ_OP;
+                    getChar(); /* Get next character */
+                } else {
+                    ungetc(next, in_fp);
+                    addChar();
+                    nextToken = ASSIGN_OP;
+                }
+            }
+            break;
+        case '<':
+            {
+                char next = getc(in_fp);
+                if (next == '=') {
+                    addChar();
+                    addChar();
+                    nextToken = LE_OP;
+                    getChar(); /* Get next character */
+                } else {
+                    ungetc(next, in_fp);
+                    addChar();
+                    nextToken = LT_OP;
+                }
+            }
+            break;
+        case '>':
+            {
+                char next = getc(in_fp);
+                if (next == '=') {
+                    addChar();
+                    addChar();
+                    nextToken = GE_OP;
+                    getChar(); /* Get next character */
+                } else {
+                    ungetc(next, in_fp);
+                    addChar();
+                    nextToken = GT_OP;
+                }
+            }
+            break;
+        case '!':
+            {
+                char next = getc(in_fp);
+                if (next == '=') {
+                    addChar();
+                    addChar();
+                    nextToken = NE_OP;
+                    getChar(); /* Get next character */
+                } else {
+                    ungetc(next, in_fp);
+                    addChar();
+                    nextToken = EOF; /* Not supported */
+                }
+            }
+            break;
+        case '/':
+            /* Extended: Check for comments */
+            {
+                char next = getc(in_fp);
+                if (next == '*') {
+                    /* Block comment - skip it */
+                    skipBlockComment();
+                    return lex(); /* Continue lexical analysis */
+                } else if (next == '/') {
+                    /* Line comment - skip it */
+                    skipLineComment();
+                    return lex(); /* Continue lexical analysis */
+                } else {
+                    /* Not a comment, put back character and treat as division */
+                    ungetc(next, in_fp);
+                    addChar();
+                    nextToken = DIV_OP;
+                }
+            }
+            break;
+        default:
+            addChar();
+            nextToken = EOF;
+            break;
+    }
+    return nextToken;
+}
+
+/*****************************************************/
+/* lookupReservedWord - check if identifier is reserved word */
+int lookupReservedWord() {
+    int i = 0;
+    while (reservedWords[i].word != NULL) {
+        if (strcmp(lexeme, reservedWords[i].word) == 0) {
+            return reservedWords[i].code;
+        }
+        i++;
+    }
+    return IDENT;
+}
+
+/*****************************************************/
+/* skipBlockComment - skip block comments */
+void skipBlockComment() {
+    /* We've already read '/' and '*' */
+    while (nextChar != EOF) {
+        getChar();
+        if (nextChar == '*') {
+            getChar();
+            if (nextChar == '/') {
+                getChar(); /* Skip the closing '/' */
+                return;
+            }
+        }
+    }
+    printf("ERROR - Unterminated block comment\n");
+}
+
+/*****************************************************/
+/* skipLineComment - skip line comments */
+void skipLineComment() {
+    /* We've already read '//' */
+    while (nextChar != '\n' && nextChar != EOF) {
+        getChar();
+    }
+    if (nextChar == '\n') {
+        getChar();
+    }
+}
+
+/*****************************************************/
+/* addChar - same as Section 4.2 */
+void addChar() {
+    if (lexLen <= 98) {
+        lexeme[lexLen++] = nextChar;
+        lexeme[lexLen] = 0;
+    }
+    else
+        printf("Error - lexeme is too long \n");
+}
+
+/*****************************************************/
+/* getChar - same as Section 4.2 */
+void getChar() {
+    if ((nextChar = getc(in_fp)) != EOF) {
+        if (isalpha(nextChar))
+            charClass = LETTER;
+        else if (isdigit(nextChar))
+            charClass = DIGIT;
+        else charClass = UNKNOWN;
+    }
+    else
+        charClass = EOF;
+}
+
+/*****************************************************/
+/* getNonBlank - same as Section 4.2 */
+void getNonBlank() {
+    while (isspace(nextChar))
+        getChar();
+}
+
+/*****************************************************/
+/* lex - extended from Section 4.2 */
+int lex() {
+    lexLen = 0;
+    getNonBlank();
+    switch (charClass) {
+        /* Parse identifiers - extended to check reserved words */
+        case LETTER:
+            addChar();
+            getChar();
+            while (charClass == LETTER || charClass == DIGIT) {
+                addChar();
+                getChar();
+            }
+            nextToken = lookupReservedWord(); /* Extended: check reserved words */
+            break;
+
+        /* Parse integer literals - extended for floating-point */
+        case DIGIT:
+            addChar();
+            getChar();
+            while (charClass == DIGIT) {
+                addChar();
+                getChar();
+            }
+            
+            /* Extended: Check for floating-point pattern */
+            if (nextChar == '.') {
+                addChar(); /* Add the '.' */
+                getChar();
+                
+                /* Must have digits after decimal point */
+                if (charClass == DIGIT) {
+                    while (charClass == DIGIT) {
+                        addChar();
+                        getChar();
+                    }
+                    
+                    /* Optional exponent */
+                    if (nextChar == 'e' || nextChar == 'E') {
+                        addChar();
+                        getChar();
+                        
+                        /* Optional sign */
+                        if (nextChar == '+' || nextChar == '-') {
+                            addChar();
+                            getChar();
+                        }
+                        
+                        /* Must have digits in exponent */
+                        if (charClass == DIGIT) {
+                            while (charClass == DIGIT) {
+                                addChar();
+                                getChar();
+                            }
+                        }
+                    }
+                    nextToken = FLOAT_LIT;
+                } else {
+                    nextToken = FLOAT_LIT; /* Still treat as float */
+                }
+            } else {
+                nextToken = INT_LIT;
+            }
+            break;
+
+        /* Extended: Handle signed floating-point literals */
+        case UNKNOWN:
+            if ((nextChar == '+' || nextChar == '-')) {
+                /* Look ahead to see if this is a signed number */
+                char next1 = getc(in_fp);
+                if (isdigit(next1)) {
+                    /* Look further to see if it's a float */
+                    char next2 = getc(in_fp);
+                    ungetc(next2, in_fp);
+                    ungetc(next1, in_fp);
+                    
+                    if (next2 == '.' || isdigit(next2)) {
+                        /* Parse as signed number */
+                        addChar();
+                        getChar();
+                        
+                        /* Parse digits */
+                        while (charClass == DIGIT) {
+                            addChar();
+                            getChar();
+                        }
+                        
+                        /* Check for floating-point */
+                        if (nextChar == '.') {
+                            addChar();
+                            getChar();
+                            
+                            if (charClass == DIGIT) {
+                                while (charClass == DIGIT) {
+                                    addChar();
+                                    getChar();
+                                }
+                                
+                                /* Optional exponent */
+                                if (nextChar == 'e' || nextChar == 'E') {
+                                    addChar();
+                                    getChar();
+                                    
+                                    if (nextChar == '+' || nextChar == '-') {
+                                        addChar();
+                                        getChar();
+                                    }
+                                    
+                                    if (charClass == DIGIT) {
+                                        while (charClass == DIGIT) {
+                                            addChar();
+                                            getChar();
+                                        }
+                                    }
+                                }
+                                nextToken = FLOAT_LIT;
+                            } else {
+                                nextToken = FLOAT_LIT;
+                            }
+                        } else {
+                            nextToken = INT_LIT;
+                        }
+                        break;
+                    }
+                } else {
+                    ungetc(next1, in_fp);
+                }
+            }
+            
+            /* Original Section 4.2 handling */
+            lookup(nextChar);
+            getChar();
+            break;
+
+        /* EOF - same as Section 4.2 */
+        case EOF:
+            nextToken = EOF;
+            lexeme[0] = 'E';
+            lexeme[1] = 'O';
+            lexeme[2] = 'F';
+            lexeme[3] = 0;
+            break;
+    } /* End of switch */
+
+    printf("Next token is: %d, Next lexeme is %s\n",
+           nextToken, lexeme);
+    return nextToken;
+} /* End of function lex */ 

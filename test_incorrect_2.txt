@@ -1,0 +1,6 @@
+/* Test Case 4: Incorrect - missing closing parenthesis in while */
+int z;
+z = 0;
+while (z < 5 {  // Missing closing parenthesis - should cause error
+    z = z + 1;
+} 

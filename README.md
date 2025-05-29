@@ -1,46 +1,71 @@
-# Extended Lexical Analyzer
+# HW#4 - Recursive Descent Parser
 
-A lexical analyzer based on Section 4.2 of the compiler design textbook, extended with additional features.
+[![Language](https://img.shields.io/badge/language-C-blue.svg)](https://en.wikipedia.org/wiki/C_(programming_language))
+[![Standard](https://img.shields.io/badge/standard-C99-green.svg)](https://en.wikipedia.org/wiki/C99)
+
+Recursive descent parser based on Section 4.4.1, extended with control flow statements.
 
 ## Features
 
-- **Section 4.2 Compatibility**: Maintains exact compatibility with the textbook implementation
-- **C-Style Comments**: Supports both `/* */` block comments and `//` line comments
-- **Floating-Point Literals**: Recognizes floating-point numbers with optional exponents
-- **Reserved Words**: Recognizes reserved words (for, if, else, while, do, int, float)
+- **Section 4.4.1 Compliance**: Exact implementation of textbook parser
+- **Expression Parsing**: Arithmetic expressions with precedence
+- **Control Flow**: `if-else`, `while`, `for`, `do-while` statements
+- **Error Handling**: Comprehensive syntax error detection
+- **Integrated Lexer**: Includes extended lexical analyzer from HW#3
 
-## Build and Run
+## Structure
+
+```
+├── HW4_Parser/
+│   ├── parser.c             # Complete parser implementation
+│   ├── test_correct_1.txt   # Valid syntax test case 1
+│   ├── test_correct_2.txt   # Valid syntax test case 2
+│   ├── test_incorrect_1.txt # Invalid syntax test case 1
+│   ├── test_incorrect_2.txt # Invalid syntax test case 2
+│   ├── HW4_PARSER_REPORT.md # Detailed documentation
+│   └── Makefile             # Build and test automation
+└── README.md               # This file
+```
+
+## Quick Start
 
 ```bash
-# Compile
-make
-
-# Run with default input
-make run
-
-# Test all features
+cd HW4_Parser
+make all
 make test-all
 ```
 
-## Files
+## Testing Results
 
-- `front_extended.c` - Main lexical analyzer source code
-- `front.in` - Section 4.2 test input: `(sum + 47) / total`
-- `test_reserved.in` - Reserved words test
-- `test_floats.in` - Floating-point literals test
-- `Makefile` - Build system
+- ✅ Correct syntax parsing: PASS (2/2 cases)
+- ✅ Error detection: PASS (2/2 cases)
+- ✅ Control flow statements: PASS
+- ✅ Expression evaluation: PASS
 
-## Testing
+## Grammar Extensions
 
-The lexical analyzer has been tested to ensure:
-- ✅ Perfect Section 4.2 compatibility
-- ✅ Comment recognition and skipping
-- ✅ Floating-point literal parsing
-- ✅ Reserved word identification
+The parser recognizes:
 
-## Output Format
-
-The analyzer outputs tokens in the format:
 ```
-Next token is: [TOKEN_CODE], Next lexeme is [LEXEME]
+<statement> → <ifStatement> | <whileStatement> | <forStatement> | 
+              <doWhileStatement> | <compoundStatement> | <assignment>
+
+<ifStatement> → if ( <expr> ) <statement> [else <statement>]
+<whileStatement> → while ( <expr> ) <statement>
+<forStatement> → for ( [<init>] ; [<expr>] ; [<increment>] ) <statement>
+<doWhileStatement> → do <statement> while ( <expr> ) ;
+```
+
+## Usage
+
+```bash
+# Build
+make all
+
+# Test individual cases
+make test-correct-1      # If-else and while statements
+make test-correct-2      # For and do-while statements
+make test-incorrect-1    # Missing semicolon error
+make test-incorrect-2    # Missing parenthesis error
+make test-all           # All test cases
 ``` 

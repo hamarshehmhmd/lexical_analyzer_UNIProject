@@ -1,46 +1,50 @@
-# Extended Lexical Analyzer
+# Compiler Project - University Coursework
 
-A lexical analyzer based on Section 4.2 of the compiler design textbook, extended with additional features.
+This repository contains compiler design homework assignments.
 
-## Features
+## Project Structure
 
-- **Section 4.2 Compatibility**: Maintains exact compatibility with the textbook implementation
-- **C-Style Comments**: Supports both `/* */` block comments and `//` line comments
-- **Floating-Point Literals**: Recognizes floating-point numbers with optional exponents
-- **Reserved Words**: Recognizes reserved words (for, if, else, while, do, int, float)
+This repository is organized into separate branches for each homework assignment:
 
-## Build and Run
+### Branches
+
+- **`hw3-lexical-analyzer`** - HW#3: Extended Lexical Analyzer
+  - Based on Section 4.2 with extensions for comments, floating-point literals, and reserved words
+  
+- **`hw4-parser`** - HW#4: Recursive Descent Parser  
+  - Based on Section 4.4.1 with extensions for control flow statements
+
+### Quick Access
 
 ```bash
-# Compile
-make
+# View HW#3 - Lexical Analyzer
+git checkout hw3-lexical-analyzer
 
-# Run with default input
-make run
+# View HW#4 - Parser
+git checkout hw4-parser
 
-# Test all features
-make test-all
+# Return to main branch
+git checkout main
 ```
 
-## Files
+## Features Overview
 
-- `front_extended.c` - Main lexical analyzer source code
-- `front.in` - Section 4.2 test input: `(sum + 47) / total`
-- `test_reserved.in` - Reserved words test
-- `test_floats.in` - Floating-point literals test
-- `Makefile` - Build system
+### HW#3 Features
+- ✅ Section 4.2 compatibility
+- ✅ C-style comments (`/* */` and `//`)
+- ✅ Floating-point literals
+- ✅ Reserved words recognition
 
-## Testing
+### HW#4 Features  
+- ✅ Section 4.4.1 compliance
+- ✅ Expression parsing with precedence
+- ✅ Control flow statements (if, while, for, do-while)
+- ✅ Comprehensive error handling
 
-The lexical analyzer has been tested to ensure:
-- ✅ Perfect Section 4.2 compatibility
-- ✅ Comment recognition and skipping
-- ✅ Floating-point literal parsing
-- ✅ Reserved word identification
+## Getting Started
 
-## Output Format
+1. Clone the repository
+2. Switch to the desired homework branch
+3. Follow the README instructions in that branch
 
-The analyzer outputs tokens in the format:
-```
-Next token is: [TOKEN_CODE], Next lexeme is [LEXEME]
-``` 
+Each homework is completely self-contained in its respective branch. 

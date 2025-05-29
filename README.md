@@ -1,46 +1,54 @@
-# Extended Lexical Analyzer
+# HW#3 - Extended Lexical Analyzer
 
-A lexical analyzer based on Section 4.2 of the compiler design textbook, extended with additional features.
+[![Language](https://img.shields.io/badge/language-C-blue.svg)](https://en.wikipedia.org/wiki/C_(programming_language))
+[![Standard](https://img.shields.io/badge/standard-C99-green.svg)](https://en.wikipedia.org/wiki/C99)
+
+Extended lexical analyzer based on Section 4.2 of compiler design textbook.
 
 ## Features
 
-- **Section 4.2 Compatibility**: Maintains exact compatibility with the textbook implementation
-- **C-Style Comments**: Supports both `/* */` block comments and `//` line comments
-- **Floating-Point Literals**: Recognizes floating-point numbers with optional exponents
-- **Reserved Words**: Recognizes reserved words (for, if, else, while, do, int, float)
+- **Section 4.2 Compatibility**: Perfect match with textbook example
+- **C-style Comments**: Block (`/* */`) and line (`//`) comment recognition  
+- **Floating-point Literals**: Pattern `[+|-]d{d}.d{d}[e|E][+|-]d{d}`
+- **Reserved Words**: Recognition of `for`, `if`, `else`, `while`, `do`, `int`, `float`
 
-## Build and Run
+## Structure
+
+```
+├── HW3_Lexical_Analyzer/
+│   ├── front_extended.c      # Main implementation
+│   ├── front.in             # Section 4.2 test input
+│   ├── test_reserved.in     # Reserved words test
+│   ├── test_floats.in       # Floating-point literals test
+│   └── Makefile             # Build and test automation
+└── README.md               # This file
+```
+
+## Quick Start
 
 ```bash
-# Compile
-make
-
-# Run with default input
-make run
-
-# Test all features
+cd HW3_Lexical_Analyzer
+make all
 make test-all
 ```
 
-## Files
-
-- `front_extended.c` - Main lexical analyzer source code
-- `front.in` - Section 4.2 test input: `(sum + 47) / total`
-- `test_reserved.in` - Reserved words test
-- `test_floats.in` - Floating-point literals test
-- `Makefile` - Build system
-
 ## Testing
 
-The lexical analyzer has been tested to ensure:
-- ✅ Perfect Section 4.2 compatibility
-- ✅ Comment recognition and skipping
-- ✅ Floating-point literal parsing
-- ✅ Reserved word identification
+- ✅ Section 4.2 compatibility: PASS
+- ✅ Reserved words recognition: PASS  
+- ✅ Floating-point literals: PASS
+- ✅ Comment handling: PASS
 
-## Output Format
+## Usage
 
-The analyzer outputs tokens in the format:
-```
-Next token is: [TOKEN_CODE], Next lexeme is [LEXEME]
+```bash
+# Build
+make all
+
+# Run specific tests
+make test-section42    # Section 4.2 compatibility
+make test-reserved     # Reserved words
+make test-floats       # Floating-point literals
+make test-comments     # Comment handling
+make test-all          # All tests
 ``` 
